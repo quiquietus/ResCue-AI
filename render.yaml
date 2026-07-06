@@ -1,0 +1,69 @@
+services:
+  # ── Backend: FastAPI ────────────────────────────────────────────────────────
+  - type: web
+    name: rescue-ai-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: starter
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: NEWS_API_KEY
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: KAFKA_BOOTSTRAP_SERVERS
+        value: kafka-1bbdb9d4-quiquietus-011.i.aivencloud.com:27060
+      - key: KAFKA_USERNAME
+        sync: false
+      - key: KAFKA_PASSWORD
+        sync: false
+      - key: FIREBASE_CREDENTIALS_PATH
+        value: ./firebase-service-account.json
+      - key: MODEL_PATH
+        value: ../resnet50_disaster.pth
+      - key: CORS_ORIGINS
+        value: https://rescue-ai-frontend.onrender.com,http://localhost:3000
+      - key: PORT
+        value: 8001
+
+  # ── Pipeline: Kafka Consumer Worker ─────────────────────────────────────────
+  - type: worker
+    name: rescue-ai-pipeline
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python pipeline.py
+    plan: starter
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: NEWS_API_KEY
+        sync: false
+      - key: KAFKA_BOOTSTRAP_SERVERS
+        value: kafka-1bbdb9d4-quiquietus-011.i.aivencloud.com:27060
+      - key: KAFKA_USERNAME
+        sync: false
+      - key: KAFKA_PASSWORD
+        sync: false
+      - key: FIREBASE_CREDENTIALS_PATH
+        value: ./firebase-service-account.json
+
+  # ── Frontend: React Static Site ──────────────────────────────────────────────
+  - type: web
+    name: rescue-ai-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: build
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: REACT_APP_BACKEND_URL
+        value: https://rescue-ai-backend.onrender.com
+      - key: REACT_APP_GOOGLE_MAPS_KEY
+        sync: false
