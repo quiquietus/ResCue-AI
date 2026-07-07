@@ -60,84 +60,9 @@ This platform solves that by:
 
 ## 🏗 System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              DATA INGESTION LAYER                              │
-│                                                                                 │
-│   ┌──────────────┐          ┌──────────────────────────────┐                   │
-│   │   Reddit      │─────────▶│                              │                   │
-│   │   (PRAW API)  │  Kafka   │     Apache Kafka (Aiven)     │                   │
-│   │   8 subreddits│  Topic:  │     SASL_SSL + SCRAM-SHA-256 │                   │
-│   └──────────────┘  reddit_  │                              │                   │
-│                     disasters│   Topics:                     │                   │
-│   ┌──────────────┐          │   • reddit_disasters          │                   │
-│   │   BlueSky     │─────────▶│   • bluesky_disaster_posts   │                   │
-│   │   (AT Proto)  │  Kafka   │                              │                   │
-│   │   6 queries   │  Topic:  └──────────┬───────────────────┘                   │
-│   └──────────────┘  bluesky_            │                                       │
-│                     disaster_           │ Consumer Group:                        │
-│                     posts               │ rescue-ai-pipeline                    │
-└─────────────────────────────────────────┼───────────────────────────────────────┘
-                                          │
-                                          ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           AI PROCESSING PIPELINE                               │
-│                                                                                 │
-│   ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐             │
-│   │  STAGE 1 (M1)   │   │  STAGE 2 (M2)   │   │  STAGE 3 (M3)   │             │
-│   │  Informative    │──▶│  Disaster Type   │──▶│  Severity        │             │
-│   │  Filter         │   │  Classification  │   │  Assessment      │             │
-│   │  (Llama 3 8B)   │   │  (Llama 3 8B)   │   │  (Llama 3 8B)   │             │
-│   │  YES/NO         │   │  9 categories    │   │  HIGH/MED/LOW   │             │
-│   └─────────────────┘   └─────────────────┘   └────────┬────────┘             │
-│                                                          │                      │
-│   ┌─────────────────┐   ┌─────────────────┐            │                      │
-│   │  YAKE Keywords  │──▶│  NewsAPI Context │            │                      │
-│   │  (Statistical   │   │  Enrichment      │            │                      │
-│   │   Extraction)   │   │  (Top article)   │            │                      │
-│   └─────────────────┘   └────────┬────────┘            │                      │
-│                                   │                      │                      │
-│                                   ▼                      ▼                      │
-│                          ┌─────────────────────────────────┐                   │
-│                          │  STAGE 4 — Final Enrichment     │                   │
-│                          │  (Llama 3 8B)                   │                   │
-│                          │  Generates:                     │                   │
-│                          │  • Summary (2-3 sentences)      │                   │
-│                          │  • Precise location extraction  │                   │
-│                          │  • Casualty information         │                   │
-│                          │  • NGO response strategy        │                   │
-│                          └──────────────┬──────────────────┘                   │
-│                                         │                                       │
-└─────────────────────────────────────────┼───────────────────────────────────────┘
-                                          │
-                                          ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              DATA PERSISTENCE                                  │
-│                                                                                 │
-│                    ┌────────────────────────────────┐                           │
-│                    │   Google Cloud Firestore        │                           │
-│                    │   Collection: disaster_reports  │                           │
-│                    │   Real-time onSnapshot listener │                           │
-│                    └──────────────┬─────────────────┘                           │
-│                                   │                                              │
-└───────────────────────────────────┼──────────────────────────────────────────────┘
-                                    │
-          ┌─────────────────────────┼─────────────────────────┐
-          ▼                         ▼                         ▼
-┌──────────────────┐   ┌──────────────────┐   ┌──────────────────────┐
-│  🌍 Global Feed   │   │  🚨 Victim Portal │   │  🏥 NGO Dashboard     │
-│  (React)          │   │  (React)          │   │  (React)              │
-│                   │   │                   │   │                       │
-│  • Live disaster  │   │  • GPS auto-detect│   │  Step 1: View         │
-│    cards          │   │  • Image upload   │   │    incidents          │
-│  • Category       │   │  • ResNet50 CNN   │   │  Step 2: DBSCAN       │
-│    filtering      │   │    classification │   │    clustering →       │
-│  • Search by      │   │  • Severity map   │   │    relief centers     │
-│    location       │   │    markers        │   │  Step 3: Shortest-    │
-│  • AI summaries   │   │                   │   │    path routing       │
-│  • NGO strategy   │   │                   │   │                       │
-└──────────────────┘   └──────────────────┘   └──────────────────────┘
-```
+<img width="1024" height="1536" alt="Image Jul 7, 2026, 09_57_29 PM" src="https://github.com/user-attachments/assets/b6536935-2d41-4fb2-95c3-1c01494a7773" />
+
+
 
 ---
 
